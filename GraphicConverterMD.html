@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>MegaDrive Graphic Converter Script</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="./include/jquery.min.js"></script>
+    <link rel="stylesheet" href="./include/bootstrap.min.css">
+    <script src="./include/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="./GraphicConverterMD.css">
+    <script src="./include/Heap.js"></script>
+    <script src="./include/ColorQuantizer.js"></script>
+    <script src="./GraphicConverterMD.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>
+                <strong>MegaDrive Graphic Converter Script </strong>alpha 0.1<br>
+                <small>by <a href="http://twitter.com/luceraproject" target="_blank">@luceraproject</a></small>
+            </h1>
+            <p>inspired by the work of <a href="http://twitter.com/pixelartm" target="_blank">@pixelartm</a></p>
+        </div>
+
+        <form id="page_form">
+            <div id="page_file">
+                <!-- Use external Palette -->
+                <div class="row" style="background-color: #eee">
+                    <strong>External Palette:</strong>
+                    <hr>
+                    <div class="w-100"></div>
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" id="palette_checkbox" onchange="SetUseExternalPalette(this.checked)">
+                        <label class="custom-control-label" for="palette_checkbox">Use external Palette</label>
+                    </div>
+                    <div class="w-100"></div>
+                    <div class="input-group" id="palette_group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Select palette image:</span>
+                        </div>
+                        <div class="custom-file">
+                            <label class="custom-file-label" for="fileInputPal" id="fileInputPalLabel" style="background-color: #e9ecef"></label>
+                            <input class="custom-file-input" type="file" id="fileInputPal" onchange="ReadFilePalette(this)" disabled>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-primary" type="button" style="border-radius: 0;" onclick="$('#fileInputPal').trigger('click');">Browse</button>
+                            </div>
+                        </div>
+                        <div class="input-group-append">
+                            <input class="input-group-append" type="url" id="remote_pal" style="background-color: #e9ecef; border: solid 1px #ced4da" value="">
+                        </div>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" checked id="fix_palette_colors_checkbox" onchange="SetFixPaletteColors(this.checked)">
+                        <label class="custom-control-label" for="fix_palette_colors_checkbox">Fix palette colors<small>&nbsp;(try to avoid them from color reduction)</small></label>
+                    </div>
+                </div>
+
+                <!-- Define transparent color -->
+                <br/>
+                <div class="row" style="background-color: #eee">
+                    <strong>Transparent Color:</strong>
+                    <hr>
+                    <div class="w-100"></div>
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" checked id="transparent_color_checkbox" onchange="SetUseExtTransparentColor(this.checked)">
+                        <label class="custom-control-label" for="transparent_color_checkbox">Define transparent color<small>&nbsp;(or use the first color from palette or image)</small></label>
+                    </div>
+                    <div class="w-100"></div>
+                    <div class="input-group" id="transparent_color_group">
+                        <div class="col-3" style="padding: 0;">
+                            <span class="input-group-text" style="border-radius: 0;">Transparent Color: </span>
+                        </div>
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color" value="#fc00fc" style="background-color:#fc00fc; border-radius: 0;" onchange="SetExtTransparentColor(this.value)" />
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color_md" value="MD: #ff00ff" style="background-color:#fc00fc; border-radius: 0;" disabled/>
+                        <div class="col-5" style="padding: 0">
+                            <span class="input-group-text" id="ext_transparent_color_error" style="border-radius: 0;">Ok</span>
+                        </div>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" checked id="fix_transparent_color_checkbox" onchange="SetFixTransparentColor(this.checked)">
+                        <label class="custom-control-label" for="fix_transparent_color_checkbox">Fix transparent color<small>&nbsp;(avoid it from color reduction)</small></label>
+                    </div>
+                </div>
+
+                <!-- Image MegaDrive Config: -->
+                <br/>
+                <div class="row" style="background-color: #eee">
+                    <strong>Image MegaDrive Config:</strong>
+                    <hr>
+                    <div class="w-100"></div>
+                    <!-- Limit number of colors -->
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" id="limit_colors_checkbox" onchange="SetUseLimitColors(this.checked)">
+                        <label class="custom-control-label" for="limit_colors_checkbox">Limit number of colors</label>
+                    </div>
+                    <div class="w-100"></div>
+                    <div class="form-check" id="limit_colors_group">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">Colors:&nbsp;</span>
+                            </div>
+                            <input class="form-control" type="text" id="num_colors" value="16" disabled>
+
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="button" id="num_colors-16" onclick="SetLimitColorsTo(16);">16</button>
+                            </div>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-primary" type="button" id="num_colors-32" onclick="SetLimitColorsTo(32);">32</button>
+                            </div>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-primary" type="button" id="num_colors-48" onclick="SetLimitColorsTo(48);">48</button>
+                            </div>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-primary" type="button" id="num_colors-64" onclick="SetLimitColorsTo(64);">64</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Use Blue Noise -->
+                    <div class="w-100"></div>
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" id="blue_noise_checkbox" onchange="SetUseBlueNoise(this.checked)">
+                        <label class="custom-control-label" for="blue_noise_checkbox">Use Blue Noise</label>
+                    </div>
+                    <div class="input-group">
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Select image:</span>
+                        </div>
+                        <div class="custom-file">
+                            <label class="custom-file-label" for="fileInputBlueNoise" id="fileInputBlueNoiseLabel" style="background-color: #e9ecef"></label>
+                            <input class="custom-file-input" type="file" id="fileInputBlueNoise" onchange="ReadFileBlueNoise(this)">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-primary" type="button" style="border-radius: 0;" onclick="$('#fileInputBlueNoise').trigger('click');">Browse</button>
+                            </div>
+                        </div>
+                        <div class="input-group-append">
+                            <input class="input-group-append" type="url" id="remote_blue_noise" style="background-color: #e9ecef; border: solid 1px #ced4da" value="">
+                        </div>
+                    </div>
+
+                    <!-- Use dithering -->
+                    <div class="w-100"></div>
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" id="dithering_checkbox" onchange="SetUseDithering(this.checked)">
+                        <label class="custom-control-label" for="dithering_checkbox">Use dithering</label>
+                    </div>
+
+                    <div class="w-100"></div>
+                    <!-- Add image colors to palette -->
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" id="add_image_colors_checkbox" onchange="SetAddImageColors(this.checked)">
+                        <label class="custom-control-label" for="add_image_colors_checkbox">Add image colors to palette</label>
+                    </div>
+                </div>
+
+                <!-- Use external Tileset -->
+                <br/>
+                <div class="row" style="background-color: #eee">
+                    <strong>External Tileset:</strong>
+                    <hr>
+                    <div class="w-100"></div>
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" id="tileset_checkbox" onchange="SetUseExternalTileset(this.checked)">
+                        <label class="custom-control-label" for="tileset_checkbox">Use external Tileset</label>
+                    </div>
+                    <div class="w-100"></div>
+                    <div class="input-group" id="tileset_group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Select tileset image:</span>
+                        </div>
+                        <div class="custom-file">
+                            <label class="custom-file-label" for="fileInputTileset" id="fileInputTilesetLabel" style="background-color: #e9ecef"></label>
+                            <input class="custom-file-input" type="file" id="fileInputTileset" onchange="ReadFileTileset(this)" disabled>
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-primary" type="button" style="border-radius: 0;" onclick="$('#fileInputTileset').trigger('click');">Browse</button>
+                            </div>
+                        </div>
+                        <div class="input-group-append">
+                            <input class="input-group-append" type="url" id="remote_tileset" style="background-color: #e9ecef; border: solid 1px #ced4da" value="">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output Mode -->
+                <br/>
+                <div class="row" style="background-color: #eee">
+                    <strong>Output Mode:</strong>
+                    <hr>
+                    <div class="w-100"></div>
+
+                    <!-- Just Palette -->
+                    <div class="w-100"></div>
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <input type="radio" class="form-check-input" name="mode_radio" checked value="0" onchange="SetOutputMode(this.value);">Just give me the palette
+                        </label>
+                    </div>
+
+                    <!-- Generate Sprites -->
+                    <div class="w-100"></div>
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <input type="radio" class="form-check-input" name="mode_radio" value="1" onchange="SetOutputMode(this.value);">Generate sprite data
+                        </label>
+                        <div class="w-100"></div>
+                        <div id="mode_sprite_group">
+                            <div class="custom-control custom-checkbox">
+                                <input class="custom-control-input" type="checkbox" id="optimize_sprite_checkbox" onchange="SetOptimizeSpriteData(this.checked)">
+                                <label class="custom-control-label" for="optimize_sprite_checkbox">Optimize sprite data</label>
+                            </div>
+                            <div class="w-100"></div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Width:&nbsp;</span>
+                                </div>
+                                <input class="form-control" type="text" id="spt_width" value="8" disabled>
+
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="spt_width-8" onclick="SetSpriteWidth(8);">&nbsp;8</button>
+                                </div>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary" type="button" id="spt_width-16" onclick="SetSpriteWidth(16);">16</button>
+                                </div>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary" type="button" id="spt_width-24" onclick="SetSpriteWidth(24);">24</button>
+                                </div>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary" type="button" id="spt_width-32" onclick="SetSpriteWidth(32);">32</button>
+                                </div>
+                            </div>
+                            <div class="w-100"></div>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Height:</span>
+                                </div>
+                                <input class="form-control" type="text" id="spt_height" value="8" disabled>
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="spt_height-8" onclick="SetSpriteHeight(8);">&nbsp;8</button>
+                                </div>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary" type="button" id="spt_height-16" onclick="SetSpriteHeight(16);">16</button>
+                                </div>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary" type="button" id="spt_height-24" onclick="SetSpriteHeight(24);">24</button>
+                                </div>
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary" type="button" id="spt_height-32" onclick="SetSpriteHeight(32);">32</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Image -->
+                    <div class="w-100"></div>
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <input type="radio" class="form-check-input" name="mode_radio" value="2" onchange="SetOutputMode(this.value);">Generate plane data
+                        </label>
+                        <div class="w-100"></div>
+                        <div id="mode_image_group">
+                            <div class="custom-control custom-checkbox">
+                                <input class="custom-control-input" type="checkbox" id="optimize_image_checkbox" onchange="SetOptimizeImageData(this.checked)">
+                                <label class="custom-control-label" for="optimize_image_checkbox">Optimize image data</label>
+                            </div>
+                            <div class="w-100"></div>
+                            <div class="custom-control custom-checkbox">
+                                <input class="custom-control-input" type="checkbox" id="add_metadata_checkbox" onchange="SetAddMetadata(this.checked)">
+                                <label class="custom-control-label" for="add_metadata_checkbox">Add metadata to tiles (Palette, FlipH, FlipV)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Select Image -->
+                <br/>
+                <div class="row" style="background-color: #eee">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Select image:</span>
+                        </div>
+                        <div class="custom-file">
+                            <label class="custom-file-label" for="fileInputImage" id="fileInputImageLabel" style="background-color: #e9ecef"></label>
+                            <input class="custom-file-input" type="file" id="fileInputImage" onchange="ReadFileImage(this)">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-primary" type="button" style="border-radius: 0;" onclick="$('#fileInputImage').trigger('click');">Browse</button>
+                            </div>
+                        </div>
+                        <div class="input-group-append">
+                            <input class="input-group-append" type="url" id="remote_img" style="background-color: #e9ecef; border: solid 1px #ced4da" value="">
+                        </div>
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" onclick="$('#page_form').submit()">Run!</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Messages -->
+        <br/>
+        <div class="row" style="background-color: #eee">
+            <h5>Messages:</h5>
+            <div class="w-100"></div>
+            <div id="messages"></div>
+        </div>
+
+        <br/>
+        <div class="row" style="background-color: #eee">
+            <h5>Image Original:</h5>
+            <div class="w-100"></div>
+            <div id="image"></div>
+        </div>
+
+        <br/>
+        <div class="row" style="background-color: #eee">
+            <h5>Image MegaDrive:</h5>
+            <div class="w-100"></div>
+            <div id="image_md"></div>
+        </div>
+
+        <br/>
+        <div class="row" style="background-color: #eee">
+            <h5>Color Table:</h5>
+            <div class="w-100"></div>
+            <table class="table table-bordered table-fixed" id="palette_table"></table>
+        </div>
+
+        <br/>
+        <div class="row" style="background-color: #eee">
+            <h5>Palette:</h5>
+            <div class="w-100"></div>
+            <div id="palette"></div>
+        </div>
+
+        <br/>
+        <div class="row" style="background-color: #eee">
+            <h5>TileSet:</h5>
+            <div class="w-100"></div>
+            <div id="tile_set" style="padding-left: 16px"></div>
+        </div>
+
+        <br/>
+        <div class="row" style="background-color: #eee">
+            <h5>Tiles:</h5>
+            <div class="w-100"></div>
+            <div id="tiles_table" style="padding-left: 16px"></div>
+        </div>
+
+        <br/>
+        <div class="row" style="background-color: #eee">
+            <h5>Output:</h5>
+            <div class="w-100"></div>
+            <pre id="output"></pre>
+        </div>
+    </div>
+    <script>
+        Init();
+    </script>
+</body>
+
+</html>

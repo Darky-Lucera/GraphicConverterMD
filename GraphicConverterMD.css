@@ -1,0 +1,35 @@
+canvas {
+    display: inline-block;
+    margin: 0px;
+    position: relative;
+    border: 1px solid grey;
+    width: 200%;
+    -ms-interpolation-mode: nearest-neighbor;
+    image-rendering: optimizeSpeed;
+    image-rendering: optimize-contrast;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -o-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+img {
+    display: inline-block;
+    margin: 0px;
+    position: relative;
+    border: 1px solid grey;
+    width: 200%;
+    -ms-interpolation-mode: nearest-neighbor;
+    image-rendering: optimizeSpeed;
+    image-rendering: optimize-contrast;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -o-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+.palette {
+    width: 128px;
+}
