@@ -1,25 +1,25 @@
 //
-// Copyright 2019, Carlos Aragones Martinez 
+// Copyright 2019, Carlos Aragonés
 // @luceraproject (www.lucera-project.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to 
-// deal in the Software without restriction, including without limitation the 
-// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or 
-// sell copies of the Software, and to permit persons to whom the Software is 
+// of this software and associated documentation files (the "Software"), to
+// deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+// sell copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
 
-// The above copyright notice and this permission notice shall be included in 
+// The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
 
 // The Software shall be used for Good, not Evil.
 
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
-// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
 'use strict';
@@ -53,10 +53,10 @@ class ColorQuantizer {
             idx = !!(g & bit) * 4 + !!(r & bit) * 2 + !!(b & bit);
             if (!node.children[idx])
                 node.children[idx] = this._node_create(idx, depth, node);
-     
+
             node = node.children[idx];
         }
-     
+
         node.r += r * count;
         node.g += g * count;
         node.b += b * count;
@@ -78,7 +78,7 @@ class ColorQuantizer {
             console.log("Nodes:");
             this.heap.print_nodes();
         }
-        
+
         let step = 0;
         while(this.heap.length() > num_colors + 1) {
             this.heap.push(this._fold(this.heap.pop()));
@@ -119,7 +119,7 @@ class ColorQuantizer {
             ColorQuantizer._node_check_integrity(node);
         }
     }
-    
+
     //---------------------------------
     // Node methods
     //---------------------------------
@@ -142,10 +142,10 @@ class ColorQuantizer {
             ++parent.num_children;
         }
         this.nodes.push(node);
-        
+
         return node;
     }
-    
+
     // For debugging
     static _node_check_integrity(node) {
         if(node.parent != null) {
@@ -178,7 +178,7 @@ class ColorQuantizer {
     static _node_compare(nodeA, nodeB) {
         if (nodeA.num_children < nodeB.num_children) return -1;
         if (nodeA.num_children > nodeB.num_children) return 1;
-     
+
         const ac = (nodeA.count + 0.0) / (1 << nodeA.depth);
         const bc = (nodeB.count + 0.0) / (1 << nodeB.depth);
 
@@ -191,7 +191,7 @@ class ColorQuantizer {
 
         if (nodeA.num_children < nodeB.num_children) return -1;
         if (nodeA.num_children > nodeB.num_children) return 1;
-     
+
         const ac = (nodeA.count + 0.0) / (1 << nodeA.depth);
         const bc = (nodeB.count + 0.0) / (1 << nodeB.depth);
 

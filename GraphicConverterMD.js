@@ -1,5 +1,5 @@
 //
-// Copyright 2019, Carlos Aragones Martinez
+// Copyright 2019, Carlos Aragonés
 // @luceraproject (www.lucera-project.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -43,6 +43,7 @@ Globals.FixPaletteColors   = true;    // all palette colors except if > LimitCol
 
 Globals.UseExtTransparentColor = false;
 Globals.FixTransparentColor    = true; // first palette color
+Globals.TransparentColors      = [ "#fc00fc", "#d800d8", "#b400b4", "#900090"];
 
 Globals.UseExternalTileset = true;
 
@@ -52,7 +53,7 @@ Globals.UseDithering   = false;
 Globals.UseBlueNoise   = false;
 Globals.AddImageColors = true;
 
-Globals.OutputMode = Globals.OutputModeNames.Sprites;
+Globals.OutputMode = Globals.OutputModeNames.Image;
 
 Globals.OptimizeSpriteData = true;
 Globals.SpriteWidth  = 32;
@@ -201,8 +202,8 @@ function SetUseExtTransparentColor(value) {
     $("#fileInputPal").css({ opacity: 0.0 });
 }
 
-function SetExtTransparentColor(value) {
-    var error = document.getElementById("ext_transparent_color_error");
+function SetExtTransparentColor(index, value) {
+    var error = document.getElementById("ext_transparent_color_error" + index);
     if (CheckHexColor(value) == false) {
         error.innerHTML = "Invalid color";
         error.style.backgroundColor = "#faa";
@@ -211,11 +212,11 @@ function SetExtTransparentColor(value) {
     error.innerHTML = "Ok";
     error.style.backgroundColor = "#e9ecef";
 
-    var ext_transparent_color = document.getElementById("ext_transparent_color");
+    var ext_transparent_color = document.getElementById("ext_transparent_color" + index);
     ext_transparent_color.style.color = GetLabelColor(value);
     ext_transparent_color.style.backgroundColor = value;
 
-    var ext_transparent_color_md = document.getElementById("ext_transparent_color_md");
+    var ext_transparent_color_md = document.getElementById("ext_transparent_color_md" + index);
     ext_transparent_color_md.value = "MD: " + HexToHexMD888(value);
     ext_transparent_color_md.style.color = GetLabelColor(value);
     ext_transparent_color_md.style.backgroundColor = HexToHexMD888(value);
@@ -418,8 +419,27 @@ function WriteMessage(className, message) {
     $("#messages").append(document.createElement("br"));
 }
 
+function AddTransparentIfNeeded() {
+    if(Globals.Palette.length == 16) {
+        var v = gMegaDriveColors[6];
+        Globals.Palette.push(Globals.TransparentColors[1]);
+        Globals.ColorCount.push(0);
+    }
+    else if(Globals.Palette.length == 32) {
+        var v = gMegaDriveColors[5];
+        Globals.Palette.push(Globals.TransparentColors[2]);
+        Globals.ColorCount.push(0);
+    }
+    else if(Globals.Palette.length == 48) {
+        var v = gMegaDriveColors[4];
+        Globals.Palette.push(Globals.TransparentColors[3]);
+        Globals.ColorCount.push(0);
+    }
+
+}
+
 // Collect all different colors from the image
-function CollectPalette(context, width, height) {
+function CollectColorsFromImage(context, width, height) {
     var image_data = context.getImageData(0, 0, width, height).data;
     for (var y = 0; y < height; y++) {
         var offsetY = y * width * 4;
@@ -432,6 +452,7 @@ function CollectPalette(context, width, height) {
             var color = RGBToHexMD888(r, g, b);
             var index = Globals.Palette.indexOf(color);
             if (index == -1) {
+                AddTransparentIfNeeded();
                 Globals.Palette.push(color);
                 Globals.ColorCount.push(0);
             }
@@ -440,7 +461,7 @@ function CollectPalette(context, width, height) {
     Globals.PaletteNumColors = Globals.Palette.length;
 }
 
-function CollectColorData(context, width, height) {
+function CountColorsFromImage(context, width, height) {
     var image_data = context.getImageData(0, 0, width, height).data;
     for (var y = 0; y < height; y++) {
         var offsetY = y * width * 4;
@@ -453,6 +474,7 @@ function CollectColorData(context, width, height) {
             var color = RGBToHexMD888(r, g, b);
             var index = Globals.Palette.indexOf(color);
             if (index == -1) {
+                AddTransparentIfNeeded();
                 Globals.Palette.push(color);
                 Globals.ColorCount.push(1);
                 WriteMessage("text-warning", "New color found in image that is not in palette: " + color);
@@ -541,88 +563,6 @@ function TransformImage(image_context, image_width, image_height, blue_noise_dat
         }
     }
     image_context.putImageData(image, 0, 0);
-}
-
-function CollectColorData_OLD(context, width, height) {
-    var fake_palette = [];
-
-    Globals.ColorIndices = new Array(width * height);
-    var image = context.getImageData(0, 0, width, height);
-    var image_data = image.data;
-    var col_index = 0;
-    for (var y = 0; y < height; y++) {
-        var offsetY = y * width * 4;
-        for (var x = 0; x < width; x++) {
-            var offsetYX = offsetY + x * 4;
-            var r = image_data[offsetYX + 0];
-            var g = image_data[offsetYX + 1];
-            var b = image_data[offsetYX + 2];
-
-            if (Globals.UseDithering == false) {
-                image_data[offsetYX + 0] = ComponentToMD888(r);
-                image_data[offsetYX + 1] = ComponentToMD888(g);
-                image_data[offsetYX + 2] = ComponentToMD888(b);
-            }
-            else {
-                var mdR = ComponentToMD888(r);
-                var mdG = ComponentToMD888(g);
-                var mdB = ComponentToMD888(b);
-                var diffR = r - mdR;
-                var diffG = g - mdG;
-                var diffB = b - mdB;
-                if (x < width - 1) {
-                    image_data[offsetYX + 4 + 0] = ClampComponent(image_data[offsetYX + 4 + 0] + ((diffR * 7) >> 4));
-                    image_data[offsetYX + 4 + 1] = ClampComponent(image_data[offsetYX + 4 + 1] + ((diffG * 7) >> 4));
-                    image_data[offsetYX + 4 + 2] = ClampComponent(image_data[offsetYX + 4 + 2] + ((diffB * 7) >> 4));
-                }
-                if (y < height - 1) {
-                    var offsetAux = offsetYX + width * 4;
-
-                    if (x > 1) {
-                        image_data[offsetAux - 4 + 0] = ClampComponent(image_data[offsetAux - 4 + 0] + ((diffR * 3) >> 4));
-                        image_data[offsetAux - 4 + 1] = ClampComponent(image_data[offsetAux - 4 + 1] + ((diffG * 3) >> 4));
-                        image_data[offsetAux - 4 + 2] = ClampComponent(image_data[offsetAux - 4 + 2] + ((diffB * 3) >> 4));
-                    }
-
-                    image_data[offsetAux + 0] = ClampComponent(image_data[offsetAux + 0] + ((diffR * 5) >> 4));
-                    image_data[offsetAux + 1] = ClampComponent(image_data[offsetAux + 1] + ((diffG * 5) >> 4));
-                    image_data[offsetAux + 2] = ClampComponent(image_data[offsetAux + 2] + ((diffB * 5) >> 4));
-
-                    if (x < width - 1) {
-                        image_data[offsetAux + 4 + 0] = ClampComponent(image_data[offsetAux + 4 + 0] + ((diffR * 1) >> 4));
-                        image_data[offsetAux + 4 + 1] = ClampComponent(image_data[offsetAux + 4 + 1] + ((diffG * 1) >> 4));
-                        image_data[offsetAux + 4 + 2] = ClampComponent(image_data[offsetAux + 4 + 2] + ((diffB * 1) >> 4));
-                    }
-                }
-            }
-
-            var color = RGBToHexMD888(r, g, b);
-            var index = Globals.Palette.indexOf(color);
-            if (index == -1) {
-                if(Globals.AddImageColors) {
-                    index = Globals.Palette.length;
-                    Globals.Palette.push(color);
-                    Globals.ColorCount.push(1);
-                    WriteMessage("text-warning", "New color found in image that is not in palette: " + color);
-                }
-                else {
-                    // Avoid repeating the same error
-                    var fake_index = fake_palette.indexOf(color);
-                    if(fake_index == -1) {
-                        fake_palette.push(color);
-                        WriteMessage("text-danger", "New color found in image that is not in palette: " + color + " (NOT ADDED)");
-                        Globals.error = true;
-                    }
-                }
-            }
-            else {
-                Globals.ColorCount[index]++;
-            }
-            //Globals.ColorIndices.push(index);
-            Globals.ColorIndices[col_index++] = index;
-        }
-    }
-    context.putImageData(image, 0, 0);
 }
 
 function DrawPaletteToTable(table) {
@@ -811,25 +751,31 @@ function DrawPaletteToCanvas(canvas_draw) {
     }
 }
 
+function GetTransparentColors() {
+    for(var i=0; i<4; ++i) {
+        var extTransparentColor = $("#ext_transparent_color" + i).val();
+        if (CheckHexColor(extTransparentColor) == false) {
+            WriteMessage("text-danger", "Invalid transparent color" + (i + 1) + ": " + extTransparentColor);
+            Globals.error = true;
+            return false;
+        }
+        Globals.TransparentColors[i] = HexToHexMD888(extTransparentColor);
+        WriteMessage("text-info", "User defined transparent color" + (i + 1) + ": " + extTransparentColor + "- MD: " + Globals.TransparentColors[i]);
+    }
+
+    Globals.Palette.push(Globals.TransparentColors[0]);
+    Globals.ColorCount.push(0);
+}
+
 $(document).ready(function() {
 
     $("#page_form").submit(function() {
 
         $("#messages").empty();
 
-        // Set transparent color defined by user
+        // Set transparent colors defined by user
         if (Globals.UseExtTransparentColor == true) {
-            var ext_transparent_color = $("#ext_transparent_color").val();
-            if (CheckHexColor(ext_transparent_color) == false) {
-                WriteMessage("text-danger", "Invalid transparent color: " + ext_transparent_color);
-                Globals.error = true;
-                return false;
-            }
-            var color_transparent_md = HexToHexMD888(ext_transparent_color);
-            WriteMessage("text-info", "User defined transparent color: " + ext_transparent_color + "- MD: " + color_transparent_md);
-
-            Globals.Palette.push(color_transparent_md);
-            Globals.ColorCount.push(0);
+            GetTransparentColors();
         }
 
         // Load external palette
@@ -850,7 +796,7 @@ $(document).ready(function() {
                     palette_ex_context.drawImage(palette_ex_source, 0, 0);
                     var url = palette_ex_canvas.toDataURL(); // Succeeds. Canvas won't be dirty.
 
-                    CollectPalette(palette_ex_context, palette_ex_width, palette_ex_height);
+                    CollectColorsFromImage(palette_ex_context, palette_ex_width, palette_ex_height);
                     WriteMessage("text-info", "Collected " + Globals.Palette.length + " colors from <strong>palette</strong>");
                 };
 
@@ -895,7 +841,7 @@ $(document).ready(function() {
                     }
 
                     var colors = Globals.Palette.length
-                    CollectPalette(Globals.TilesetExtContext, Globals.TilesetExtWidth, Globals.TilesetExtHeight);
+                    CollectColorsFromImage(Globals.TilesetExtContext, Globals.TilesetExtWidth, Globals.TilesetExtHeight);
                     WriteMessage("text-info", "Collected " + (Globals.Palette.length - colors) + " colors from <strong>external tileset</strong>");
                 };
 
@@ -961,7 +907,7 @@ $(document).ready(function() {
             // Collect colors
             if (Globals.UseExternalPalette == false) {
                 var colors = Globals.Palette.length
-                CollectPalette(context_image, image_width, image_height);
+                CollectColorsFromImage(context_image, image_width, image_height);
                 WriteMessage("text-info", "Collected " + (Globals.Palette.length - colors) + " colors from <strong>image</strong>");
             }
             else {
@@ -969,7 +915,7 @@ $(document).ready(function() {
                 if ((Globals.UseExtTransparentColor && Globals.Palette.length < 2) || (Globals.UseExtTransparentColor == false && Globals.Palette.length < 1)) {
                     WriteMessage("text-warning", "There are no colors in the Palette image");
                     WriteMessage("text-info", "Collecting colors from Image");
-                    CollectPalette(context_image, image_width, image_height);
+                    CollectColorsFromImage(context_image, image_width, image_height);
                 }
             }
 
@@ -1000,7 +946,7 @@ $(document).ready(function() {
 
             // Collect image color data
             var orig_palette_colors = Globals.Palette.length;
-            CollectColorData(context_image, image_width, image_height);
+            CountColorsFromImage(context_image, image_width, image_height);
             GeneratePaletteRGB();
             if (orig_palette_colors != Globals.Palette.length) {
                 WriteMessage("text-warning", "There are " + (Globals.Palette.length - orig_palette_colors) + " new colors in the image");
@@ -1040,7 +986,7 @@ $(document).ready(function() {
                     var newColors = quantizer.reduce_colors(Globals.LimitColorsTo, false);
 
                     Globals.PaletteRGB = Globals.PaletteRGB.slice(0, firstColor);
-                    Globals.Palette = Globals.Palette.slice(0, firstColor);
+                    Globals.Palette    = Globals.Palette.slice(0, firstColor);
                     Globals.ColorCount = Globals.ColorCount.slice(0, firstColor);
 
                     // Find palette colors in new colors (to maintain the order in the palette)
@@ -1062,6 +1008,7 @@ $(document).ready(function() {
                     for(i=0; i<newColors.length; ++i) {
                         var color = newColors[i];
                         if(color != null) {
+                            AddTransparentIfNeeded();
                             Globals.PaletteRGB.push([color[0], color[1], color[2]]);
                             Globals.Palette.push(RGBToHexMD888(color[0], color[1], color[2]));
                             Globals.ColorCount.push(color[3]);
@@ -1354,8 +1301,8 @@ function PrintSpriteData() {
                     if(index == -1) {
                         unique_sprites.push(sprite_info);
                         if(Globals.OptimizeSpriteData) {
-                            Globals.ValidTiles[num_sprite++] = true;
-                            const str = " // Sprite " + unique_sprites.length + " (pos: " + num_sprite + ")\n";
+                            Globals.ValidTiles[num_sprite] = true;
+                            const str = " // Sprite " + (unique_sprites.length - 1) + " (pos: " + num_sprite++ + ")\n";
                             image_info += sprite_info.replace("\n", str) + "\n";
                         }
                     }
@@ -1394,11 +1341,14 @@ function PrintSpriteData() {
     return image_info;
 }
 
+Set.prototype.getByIndex = function(index) { return [...this][index]; }
+
 // Ugly class to not repeat this code
 class TilePalette {
     constructor() {
         this.reset();
     }
+
     getValueString(value) {
         if(this.min > value) {
             this.min = value;
@@ -1410,6 +1360,44 @@ class TilePalette {
         while(value >= 16) value -= 16;
 
         return value.toString(16);
+    }
+
+    addValue(value) {
+        if(value < 16) {
+            this.palette.add(0);
+            this.data[0] += value.toString(16);
+            this.data[1] += "0";
+            this.data[2] += "0";
+            this.data[3] += "0";
+        }
+        else if(value < 32) {
+            this.palette.add(1);
+            this.data[0] += "0";
+            this.data[1] += (value - 16).toString(16);
+            this.data[2] += "0";
+            this.data[3] += "0";
+        }
+        else if(value < 48) {
+            this.palette.add(2);
+            this.data[0] += "0";
+            this.data[1] += "0";
+            this.data[2] += (value - 32).toString(16);
+            this.data[3] += "0";
+        }
+        else if(value < 64) {
+            this.palette.add(3);
+            this.data[0] += "0";
+            this.data[1] += "0";
+            this.data[2] += "0";
+            this.data[3] += (value - 48).toString(16);
+        }
+        else {
+            // Error
+        }
+    }
+
+    has(pal) {
+        return this.palette.has(pal);
     }
 
     addPalette() {
@@ -1451,6 +1439,7 @@ class TilePalette {
     reset() {
         this.min =  1024;
         this.max = -1024;
+        this.data = ["", "", "", ""];
         this.palette = new Set();
     }
 }
@@ -1487,9 +1476,9 @@ function GetFlipHV(tileInfo) {
     return result;
 }
 
-function GetNumTileEx(line_info, tilePalette) {
+function GetNumTileEx(line_info, paletteIndex) {
     var num_tile;
-    var pal = " // Palette: " + tilePalette.getPalette();
+    var pal = " // Palette: " + paletteIndex;
 
     num_tile = Globals.Hashes.indexOf(line_info + pal);
     if(num_tile != -1)
@@ -1511,110 +1500,173 @@ function GetNumTileEx(line_info, tilePalette) {
 }
 
 function PrintImageData() {
-    var image_info_head = "";
-    var image_info = "";
-    var num_tiles_x = Globals.ImageWidth / 8;
-    var num_tiles_y = Globals.ImageHeight / 8;
-    var num_tile = 0;
-    var map_info = "";
+    const num_tiles_x = Globals.ImageWidth  / 8;
+    const num_tiles_y = Globals.ImageHeight / 8;
+    var num_tileA = 0;
+    var num_tileB = Globals.OptimizeImageData ? 0 : num_tiles_x * num_tiles_y;
+    var map_infoA, map_infoB;
+    var image_info;
+    var image_infoB = "";
     var num_map = 0;
     var tilePalette = new TilePalette();
     var physical_tile = 0;
     var addPalette = Globals.AddMetadata ? (1 << 13) : 0;
 
-    map_info += "\nconst u16 gTileMap" + Globals.ImageNameCap + "[k" + Globals.ImageNameCap + "NumTiles] = {";
+    var palA = -1;
+    var palB = -1;
+    if(Globals.ColorCount <= 16) {
+        palA = 0;
+    }
+    if(Globals.ColorCount <= 32) {
+        palB = 1;
+    }
+    else {
+        for (var i = 0; i < Globals.ColorCount.length; ++i) {
+            if(Globals.ColorCount[i] > 0) {
+                const palId = i >> 4;
+                if(palA == -1) {
+                    palA = palId;
+                }
+                else if(palA != palId) {
+                    if(palB == -1) {
+                        palB = palId;
+                    }
+                    else if(palB != palId) {
+                        Globals.error = true;
+                    }
+                }
+            }
+        }
+    }
 
-    var offset1 = 0;
-    var offset2 = 0;
+    map_infoA  = "\nconst u16 gTileMap" + Globals.ImageNameCap + "A[k" + Globals.ImageNameCap + "NumTiles] = {";
+    map_infoB  = "\nconst u16 gTileMap" + Globals.ImageNameCap + "B[k" + Globals.ImageNameCap + "NumTiles] = {";
+    image_info = "\nconst u32 gData"    + Globals.ImageNameCap +  "[k" + Globals.ImageNameCap + "DataSize * 8] = {\n";
+
+    var offset1   = 0;
+    var offset2   = 0;
     var new_tiles = 0;
+    var usesPalB  = false;
 
     if(Globals.UseExternalTileset) {
         for (var x = 0; x < Globals.TilesetExtWidth; x += 8) {
             offset1 = x;
-            var line_info = "\t";
+            var tile_infoA = "\t";
             for (var tile_y = 0; tile_y < 8; ++tile_y) {
-                var data = "0x";
+                var tile_row = "0x";
                 offset2 = offset1 + tile_y * Globals.TilesetExtWidth;
                 tilePalette.reset();
                 for (var tile_x = 0; tile_x < 8; ++tile_x) {
-                    data += tilePalette.getValueString(Globals.TilesetExtColorIndices[offset2 + tile_x])
+                    tile_row += tilePalette.getValueString(Globals.TilesetExtColorIndices[offset2 + tile_x])
                 }
                 tilePalette.addPalette();
 
-                data += ", ";
-                line_info += data;
+                tile_row += ", ";
+                tile_infoA += tile_row;
             }
 
-            line_info += " // Palette: " + tilePalette.getPalette();
-            image_info += line_info + " - Tile " + num_tile + " (" + ToHex4(num_tile) + ")\n";
+            tile_infoA += " // Palette: " + tilePalette.getPalette();
+            image_info += tile_infoA + " - Tile " + num_tileA + " (" + ToHex4(num_tileA) + ")\n";
             if(tilePalette.isOk() == false) {
-                WriteMessage("text-warning", "Mixed palletes in tile: " + num_tile + ". Not yet supported");
+                WriteMessage("text-warning", "Mixed palletes in tile: " + num_tileA + ". Not yet supported");
                 Globals.error = true;
             }
-            ++num_tile;
+            ++num_tileA;
         }
     }
 
     for (var y = 0; y < Globals.ImageHeight; y += 8) {
         for (var x = 0; x < Globals.ImageWidth; x += 8) {
             offset1 = (y * Globals.ImageWidth + x);
-            var line_info = "";
+            var tile_infoA = "";
+            var tile_infoB = "";
             for (var tile_y = 0; tile_y < 8; ++tile_y) {
-                var info = "";
-                var data = "0x";
                 offset2 = offset1 + tile_y * Globals.ImageWidth;
 
                 tilePalette.reset();
                 for (var tile_x = 0; tile_x < 8; ++tile_x) {
-                    data += tilePalette.getValueString(Globals.ColorIndices[offset2 + tile_x]);
-                    info += offset2 + tile_x + " ";
+                    tilePalette.addValue(Globals.ColorIndices[offset2 + tile_x]);
                 }
-                tilePalette.addPalette();
 
-                data += ", ";
-                line_info += data;
+                if(tilePalette.has(palA)) {
+                    tile_infoA += "0x" + tilePalette.data[palA] + ", ";
+                }
+                else {
+                    tile_infoA += "0x00000000, "
+                }
+
+                if(tilePalette.has(palB)) {
+                    usesPalB = true;
+                    tile_infoB += "0x" + tilePalette.data[palB] + ", ";
+                }
+                else {
+                    tile_infoB += "0x00000000, "
+                }
             }
 
             if (Globals.OptimizeImageData) {
                 if(Globals.AddMetadata) {
-                    num_tile = GetNumTileEx(line_info, tilePalette);
+                    num_tileA = GetNumTileEx(tile_infoA, palA);
+                    num_tileB = GetNumTileEx(tile_infoB, palB);
                 }
                 else {
-                    line_info += " // Palette: " + tilePalette.getPalette();
-                    num_tile = Globals.Hashes.indexOf(line_info);
+                    tile_infoA += " // Palette: " + palA;
+                    tile_infoB += " // Palette: " + palB;
+                    num_tileA = Globals.Hashes.indexOf(tile_infoA);
+                    num_tileB = Globals.Hashes.indexOf(tile_infoB);
                 }
-                if (num_tile == -1) {
-                    num_tile = Globals.Hashes.length;
+
+                var valid = false;
+                if (num_tileA == -1) {
+                    num_tileA = Globals.Hashes.length;
                     if(Globals.AddMetadata) {
-                        line_info += " // Palette: " + tilePalette.getPalette();
+                        tile_infoA += " // Palette: " + palA;
                     }
-                    image_info += "    " + line_info + " - Tile " + num_tile + " (" + ToHex4(num_tile) + ")\n";
+                    image_info += "    " + tile_infoA + " - Tile " + num_tileA + " (" + ToHex4(num_tileA) + ")\n";
                     if(tilePalette.isOk() == false) {
-                        WriteMessage("text-warning", "Mixed palletes in tile: " + num_tile + ". Not yet supported");
+                        WriteMessage("text-warning", "Mixed palletes in tile: " + num_tileA + ". Not yet supported");
                         Globals.error = true;
                     }
 
-                    //Globals.Hashes.push(hash);
-                    Globals.Hashes.push(line_info);
-                    Globals.ValidTiles[physical_tile++] = true;
+                    Globals.Hashes.push(tile_infoA);
+                    valid = true;
                     ++new_tiles;
                 }
-                else {
-                    Globals.ValidTiles[physical_tile++] = false;
+
+                if (num_tileB == -1) {
+                    num_tileB = Globals.Hashes.length;
+                    if(Globals.AddMetadata) {
+                        tile_infoB += " // Palette: " + palB;
+                    }
+                    image_info += "    " + tile_infoB + " - TileB " + num_tileB + " (" + ToHex4(num_tileB) + ")\n";
+                    if(tilePalette.isOk() == false) {
+                        WriteMessage("text-warning", "Mixed palletes in tile: " + num_tileB + ". Not yet supported");
+                        Globals.error = true;
+                    }
+
+                    Globals.Hashes.push(tile_infoB);
+                    valid = true;
+                    ++new_tiles;
                 }
+
+                Globals.ValidTiles[physical_tile++] = valid;
             }
             else {
                 Globals.ValidTiles[physical_tile++] = true;
             }
 
             if ((num_map % num_tiles_x) == 0) {
-                map_info += "\n\t";
+                map_infoA += "\n\t";
+                map_infoB += "\n\t";
             }
-            map_info += ToHex4(num_tile + (tilePalette.getPalette() * addPalette)) + ", ";
+
+            map_infoA += ToHex4(num_tileA + (palA * addPalette)) + ", ";
+            map_infoB += ToHex4(num_tileB + (palB * addPalette)) + ", ";
             ++num_map;
 
             if (Globals.OptimizeImageData == false) {
-                image_info += "    " + line_info + " // Tile " + num_tile++ + "\n";
+                image_info  += "    " + tile_infoA + " // Tile "  + num_tileA++ + "\n";
+                image_infoB += "    " + tile_infoB + " // TileB " + num_tileB++ + "\n";
             }
         }
     }
@@ -1629,9 +1681,8 @@ function PrintImageData() {
     else {
         Globals.OptimizedNumTiles = (num_tiles_x * num_tiles_y);
     }
-    image_info_head += "\nconst u32 gData" + Globals.ImageNameCap + "[k" + Globals.ImageNameCap + "DataSize * 8] = {\n";
 
-    return map_info + "\n};\n" + image_info_head + image_info + "};\n";
+    return map_infoA + "\n};\n" + (usesPalB ? map_infoB + "\n};\n" : "") + image_info + (usesPalB ? image_infoB : "") + "};\n";
 }
 
 function ReduceColorsToOriginalPalette(orig_palette_colors) {

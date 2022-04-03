@@ -20,7 +20,7 @@
     <div class="container">
         <div class="page-header">
             <h1>
-                <strong>MegaDrive Graphic Converter Script </strong>alpha 0.1<br>
+                <strong>MegaDrive Graphic Converter Script </strong>alpha 0.2<br>
                 <small>by <a href="http://twitter.com/luceraproject" target="_blank">@luceraproject</a></small>
             </h1>
             <p>inspired by the work of <a href="http://twitter.com/pixelartm" target="_blank">@pixelartm</a></p>
@@ -69,17 +69,49 @@
                         <input class="custom-control-input" type="checkbox" checked id="transparent_color_checkbox" onchange="SetUseExtTransparentColor(this.checked)">
                         <label class="custom-control-label" for="transparent_color_checkbox">Define transparent color<small>&nbsp;(or use the first color from palette or image)</small></label>
                     </div>
+                    
                     <div class="w-100"></div>
                     <div class="input-group" id="transparent_color_group">
                         <div class="col-3" style="padding: 0;">
-                            <span class="input-group-text" style="border-radius: 0;">Transparent Color: </span>
+                            <span class="input-group-text" style="border-radius: 0;">Transparent Color 1: </span>
                         </div>
-                        <input class="input-group-text col-2" type="text" id="ext_transparent_color" value="#fc00fc" style="background-color:#fc00fc; border-radius: 0;" onchange="SetExtTransparentColor(this.value)" />
-                        <input class="input-group-text col-2" type="text" id="ext_transparent_color_md" value="MD: #ff00ff" style="background-color:#fc00fc; border-radius: 0;" disabled/>
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color0" value="#fc00fc" style="background-color:#fc00fc; border-radius: 0;" onchange="SetExtTransparentColor(0, this.value)" />
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color_md0" value="MD: #fc00fc" style="background-color:#fc00fc; border-radius: 0;" disabled/>
                         <div class="col-5" style="padding: 0">
-                            <span class="input-group-text" id="ext_transparent_color_error" style="border-radius: 0;">Ok</span>
+                            <span class="input-group-text" id="ext_transparent_color_error0" style="border-radius: 0;">Ok</span>
+                        </div>
+
+                        <div class="w-100"></div>
+                        <div class="col-3" style="padding: 0;">
+                            <span class="input-group-text" style="border-radius: 0;">Transparent Color 2: </span>
+                        </div>
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color1" value="#d800d8" style="background-color:#d800d8; border-radius: 0;" onchange="SetExtTransparentColor(1, this.value)" />
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color_md1" value="MD: #d800d8" style="background-color:#d800d8; border-radius: 0;" disabled/>
+                        <div class="col-5" style="padding: 0">
+                            <span class="input-group-text" id="ext_transparent_color_error1" style="border-radius: 0;">Ok</span>
+                        </div>
+
+                        <div class="w-100"></div>
+                        <div class="col-3" style="padding: 0;">
+                            <span class="input-group-text" style="border-radius: 0;">Transparent Color 3: </span>
+                        </div>
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color2" value="#b400b4" style="background-color:#b400b4; border-radius: 0;" onchange="SetExtTransparentColor(2, this.value)" />
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color_md2" value="MD: #b400b4" style="background-color:#b400b4; border-radius: 0;" disabled/>
+                        <div class="col-5" style="padding: 0">
+                            <span class="input-group-text" id="ext_transparent_color_error2" style="border-radius: 0;">Ok</span>
+                        </div>
+
+                        <div class="w-100"></div>
+                        <div class="col-3" style="padding: 0;">
+                            <span class="input-group-text" style="border-radius: 0;">Transparent Color 4: </span>
+                        </div>
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color3" value="#900090" style="background-color:#900090; border-radius: 0;" onchange="SetExtTransparentColor(3, this.value)" />
+                        <input class="input-group-text col-2" type="text" id="ext_transparent_color_md3" value="MD: #900090" style="background-color:#900090; border-radius: 0;" disabled/>
+                        <div class="col-5" style="padding: 0">
+                            <span class="input-group-text" id="ext_transparent_color_error3" style="border-radius: 0;">Ok</span>
                         </div>
                     </div>
+
                     <div class="custom-control custom-checkbox">
                         <input class="custom-control-input" type="checkbox" checked id="fix_transparent_color_checkbox" onchange="SetFixTransparentColor(this.checked)">
                         <label class="custom-control-label" for="fix_transparent_color_checkbox">Fix transparent color<small>&nbsp;(avoid it from color reduction)</small></label>
