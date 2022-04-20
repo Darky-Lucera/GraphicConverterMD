@@ -420,26 +420,42 @@ function WriteMessage(className, message) {
 }
 
 function AddTransparentIfNeeded() {
+    // Allow get first transparent color from image
+    //if(Globals.Palette.length == 0) {
+    //    const color = Globals.TransparentColors[0];
+    //    WriteMessage("text-info", "Added alpha: " + color);
+    //    Globals.Palette.push(color);
+    //    Globals.ColorCount.push(0);
+    //}
+    //else 
     if(Globals.Palette.length == 16) {
-        var v = gMegaDriveColors[6];
-        Globals.Palette.push(Globals.TransparentColors[1]);
+        const color = Globals.TransparentColors[1];
+        WriteMessage("text-info", "Added alpha: " + color);
+        Globals.Palette.push(color);
         Globals.ColorCount.push(0);
+        return true;
     }
     else if(Globals.Palette.length == 32) {
-        var v = gMegaDriveColors[5];
-        Globals.Palette.push(Globals.TransparentColors[2]);
+        const color = Globals.TransparentColors[2];
+        WriteMessage("text-info", "Added alpha: " + color);
+        Globals.Palette.push(color);
         Globals.ColorCount.push(0);
+        return true;
     }
     else if(Globals.Palette.length == 48) {
-        var v = gMegaDriveColors[4];
-        Globals.Palette.push(Globals.TransparentColors[3]);
+        const color = Globals.TransparentColors[3];
+        WriteMessage("text-info", "Added alpha: " + color);
+        Globals.Palette.push(color);
         Globals.ColorCount.push(0);
+        return true;
     }
 
+    return false;
 }
 
 // Collect all different colors from the image
 function CollectColorsFromImage(context, width, height) {
+    var newColors = 0;
     var image_data = context.getImageData(0, 0, width, height).data;
     for (var y = 0; y < height; y++) {
         var offsetY = y * width * 4;
@@ -452,16 +468,20 @@ function CollectColorsFromImage(context, width, height) {
             var color = RGBToHexMD888(r, g, b);
             var index = Globals.Palette.indexOf(color);
             if (index == -1) {
+                newColors++;
                 AddTransparentIfNeeded();
                 Globals.Palette.push(color);
                 Globals.ColorCount.push(0);
             }
         }
     }
+    
     Globals.PaletteNumColors = Globals.Palette.length;
+    return newColors;
 }
 
 function CountColorsFromImage(context, width, height) {
+    var newColors = 0;
     var image_data = context.getImageData(0, 0, width, height).data;
     for (var y = 0; y < height; y++) {
         var offsetY = y * width * 4;
@@ -474,6 +494,7 @@ function CountColorsFromImage(context, width, height) {
             var color = RGBToHexMD888(r, g, b);
             var index = Globals.Palette.indexOf(color);
             if (index == -1) {
+                newColors++;
                 AddTransparentIfNeeded();
                 Globals.Palette.push(color);
                 Globals.ColorCount.push(1);
@@ -484,6 +505,8 @@ function CountColorsFromImage(context, width, height) {
             }
         }
     }
+
+    return newColors;
 }
 
 function TransformImage(image_context, image_width, image_height, blue_noise_data, blue_noise_width, blue_noise_height) {
@@ -904,21 +927,6 @@ $(document).ready(function() {
             Globals.ImageWidth  = image_width;
             Globals.ImageHeight = image_height;
 
-            // Collect colors
-            if (Globals.UseExternalPalette == false) {
-                var colors = Globals.Palette.length
-                CollectColorsFromImage(context_image, image_width, image_height);
-                WriteMessage("text-info", "Collected " + (Globals.Palette.length - colors) + " colors from <strong>image</strong>");
-            }
-            else {
-                // Is it only the transparent color?
-                if ((Globals.UseExtTransparentColor && Globals.Palette.length < 2) || (Globals.UseExtTransparentColor == false && Globals.Palette.length < 1)) {
-                    WriteMessage("text-warning", "There are no colors in the Palette image");
-                    WriteMessage("text-info", "Collecting colors from Image");
-                    CollectColorsFromImage(context_image, image_width, image_height);
-                }
-            }
-
             // Check limits
             if ((Globals.ImageWidth % 8) != 0) {
                 WriteMessage("text-danger", "ERROR. The <strong>image width</strong> must be a multiple of 8 but is: " + Globals.ImageWidth);
@@ -943,23 +951,42 @@ $(document).ready(function() {
                     Globals.error = true;
                 }
             }
+            
+            WriteMessage("text-info", "Collecting colors from Image");
 
+            // Collect colors from image if there is not pallete
+            if (Globals.UseExternalPalette == false) {
+                const newColors = CountColorsFromImage(context_image, image_width, image_height);
+                GeneratePaletteRGB();
+                WriteMessage("text-info", "Collected " + newColors + " colors from <strong>image</strong>");
+            }
+            // Is it only the transparent color?
+            else if ((Globals.UseExtTransparentColor && Globals.Palette.length < 2) || (Globals.UseExtTransparentColor == false && Globals.Palette.length < 1)) {
+                WriteMessage("text-warning", "There are no colors in the Palette image");
+                const newColors = CountColorsFromImage(context_image, image_width, image_height);
+                GeneratePaletteRGB();
+                WriteMessage("text-info", "Collected " + newColors + " colors from <strong>image</strong>");
+            }
             // Collect image color data
-            var orig_palette_colors = Globals.Palette.length;
-            CountColorsFromImage(context_image, image_width, image_height);
-            GeneratePaletteRGB();
-            if (orig_palette_colors != Globals.Palette.length) {
-                WriteMessage("text-warning", "There are " + (Globals.Palette.length - orig_palette_colors) + " new colors in the image");
-                // Reduce extra colors
-                if(Globals.AddImageColors == false) {
-                    ReduceColorsToOriginalPalette(orig_palette_colors);
+            else {
+                var orig_palette_colors = Globals.Palette.length;
+                const newColors = CountColorsFromImage(context_image, image_width, image_height);
+                GeneratePaletteRGB();
+                if (orig_palette_colors != Globals.Palette.length) {
+                    WriteMessage("text-warning", "There are " + newColors + " new colors in the image");
+                    // Reduce extra colors
+                    if(Globals.AddImageColors == false) {
+                        WriteMessage("text-info", "Reducing colors to original palette");
+                        ReduceColorsToOriginalPalette(orig_palette_colors);
+                    }
                 }
             }
 
             if(Globals.UseLimitColors) {
                 if (Globals.Palette.length > Globals.LimitColorsTo) {
                     WriteMessage("text-warning", "There are " + Globals.Palette.length + " colors, but the palette can only have " + Globals.LimitColorsTo);
-                    WriteMessage("text-success", "Quantizing extra colors");
+                    WriteMessage("text-info", "Reseting original palette");
+                    WriteMessage("text-info", "Quantizing extra colors");
                     var quantizer = new ColorQuantizer(4);
                     var firstColor = 0;
                     var maxColors = Globals.LimitColorsTo;
@@ -983,13 +1010,14 @@ $(document).ready(function() {
                     quantizer.check_integrity();
 
                     //var newColors = quantizer.reduce_colors(maxColors, false);
-                    var newColors = quantizer.reduce_colors(Globals.LimitColorsTo, false);
+                    const numTransparents = (Globals.LimitColorsTo / 16) - 1;
+                    var newColors = quantizer.reduce_colors(Globals.LimitColorsTo - numTransparents, true);
 
                     Globals.PaletteRGB = Globals.PaletteRGB.slice(0, firstColor);
                     Globals.Palette    = Globals.Palette.slice(0, firstColor);
                     Globals.ColorCount = Globals.ColorCount.slice(0, firstColor);
 
-                    // Find palette colors in new colors (to maintain the order in the palette)
+                    // Find palette colors in newColors (to maintain the order in the palette)
                     for(i=0; i<firstColor; ++i) {
                         var color_pal = Globals.PaletteRGB[i];
                         for(var c=0; c<newColors.length; ++c) {
@@ -1008,7 +1036,10 @@ $(document).ready(function() {
                     for(i=0; i<newColors.length; ++i) {
                         var color = newColors[i];
                         if(color != null) {
-                            AddTransparentIfNeeded();
+                            if(AddTransparentIfNeeded()) {
+                                const rgb = HexMD888ToArray(Globals.Palette[Globals.Palette.length - 1]);
+                                Globals.PaletteRGB.push(rgb);
+                            }
                             Globals.PaletteRGB.push([color[0], color[1], color[2]]);
                             Globals.Palette.push(RGBToHexMD888(color[0], color[1], color[2]));
                             Globals.ColorCount.push(color[3]);
@@ -1433,7 +1464,7 @@ class TilePalette {
     }
 
     isOk() {
-        return (this.palette.size == 1);
+        return (this.palette.size <= 2);
     }
 
     reset() {
@@ -1856,6 +1887,16 @@ function HexMD888ToMDPal(hex) {
     b = "0x" + hex.substring(5);
 
     return RGBToMDPal(r, g, b);
+}
+
+function HexMD888ToArray(hex) {
+    var r, g, b;
+
+    r = "0x" + hex.substring(1, 3);
+    g = "0x" + hex.substring(3, 5);
+    b = "0x" + hex.substring(5);
+
+    return [parseInt(r, 16), parseInt(g, 16), parseInt(b, 16)];
 }
 
 function HexToHexMD888(hex) {

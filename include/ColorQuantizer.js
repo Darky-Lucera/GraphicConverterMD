@@ -32,12 +32,12 @@ class ColorQuantizer {
     constructor(num_bits) {
         if(num_bits == null)
             num_bits = 8;   // from 1 to 8
+        this.id = 0;
+        this.num_bits = num_bits;
+        this.fixed_colors = false;
         this.nodes = [];
         this.root = this._node_create(0, 0, null);
-        this.num_bits = num_bits;
         this.heap = new Heap(ColorQuantizer._node_compare);
-        this.id = 0;
-        this.fixed_colors = false;
     }
 
     add_color(r, g, b, count, fixed) {
@@ -67,6 +67,8 @@ class ColorQuantizer {
         }
 
         this.heap.push(node);
+        //this.heap.print_nodes();
+        //console.log("--")
     }
 
     reduce_colors(num_colors, debug) {
@@ -91,11 +93,16 @@ class ColorQuantizer {
         const res = [];
         for(let i=1; i<this.heap.length(); ++i) {
             const node = this.heap.nodes[i];
-            const count = node.count + 0.0;
-            const r = Math.round(node.r / count);
-            const g = Math.round(node.g / count);
-            const b = Math.round(node.b / count);
-            res.push([r, g, b, node.count]);
+            const count = node.count;
+            if(count > 0) {
+                const r = Math.round(node.r / count);
+                const g = Math.round(node.g / count);
+                const b = Math.round(node.b / count);
+                res.push([r, g, b, node.count]);
+            }
+            else {
+                res.push([node.r, node.g, node.b, node.count]);
+            }
         }
 
         return res;
@@ -128,12 +135,12 @@ class ColorQuantizer {
         const node = {};
 
         node.id = this.id++;
-        node.fixed = false;
         node.depth = depth;
         node.count = 0;
         node.r = 0;
         node.g = 0;
         node.b = 0;
+        node.fixed = false;
         node.index_in_parent = index_in_parent;
         node.num_children = 0;
         node.children = new Array(8);
